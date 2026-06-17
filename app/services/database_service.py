@@ -13,6 +13,7 @@ from app.models.database_models import (
     Document,
     UploadEvent,
     DuplicateCandidate,
+    RagLog,
 )
 from app.services.address_normalizer import normalize_address, clean_address, abbreviate_address
 
@@ -763,3 +764,26 @@ class DatabaseService:
                 return True
 
             return False
+
+    @staticmethod
+    def list_rag_logs(limit: int = 10) -> list[dict]:
+        """Return the most recent RAG Q&A logs."""
+        import json
+        with SessionLocal() as session:
+            statement = (
+                select(RagLog)
+                .order_by(RagLog.created_at.desc())
+                .limit(limit)
+            )
+            logs = session.scalars(statement).all()
+            return [
+                {
+                    "id": log.id,
+                    "question": log.question,
+                    "answer": log.answer,
+                    "sources": json.loads(log.sources) if log.sources else [],
+                    "latency_ms": log.latency_ms,
+                    "created_at": log.created_at.isoformat()
+                }
+                for log in logs
+            ]

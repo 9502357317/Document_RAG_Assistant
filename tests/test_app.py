@@ -437,4 +437,24 @@ def test_extract_llm_fallback(monkeypatch):
     assert data["addresses"][0]["street"] == "Main"
 
 
+def test_rag_history_endpoint(mock_llm):
+    client = TestClient(app)
+    client.post("/rag/reindex")
+    
+    question = "What forwarding address does the Office of Records notice give for future mail?"
+    res_ask = client.post("/ask", json={"question": question})
+    assert res_ask.status_code == 200
+    
+    res_hist = client.get("/rag/history")
+    assert res_hist.status_code == 200
+    history_data = res_hist.json()
+    assert len(history_data) >= 1
+    
+    assert history_data[0]["question"] == question
+    assert "1600 Pennsylvania Ave" in history_data[0]["answer"]
+    assert "letter_dc.txt" in history_data[0]["sources"]
+    assert "latency_ms" in history_data[0]
+
+
+
 

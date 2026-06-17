@@ -572,6 +572,16 @@ def ask_endpoint(request: AskRequest):
         raise HTTPException(status_code=500, detail=f"RAG Q&A failed: {e}")
 
 
+@router.get("/rag/history")
+def get_rag_history(limit: int = 10):
+    """Retrieve the most recent RAG Q&A logs."""
+    try:
+        return DatabaseService.list_rag_logs(limit=limit)
+    except Exception as e:
+        logger.exception("Failed to retrieve RAG history:")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve RAG history: {e}")
+
+
 from fastapi.responses import HTMLResponse
 
 @router.get("/ask", response_class=HTMLResponse)
@@ -801,6 +811,66 @@ def ask_ui():
             color: #fbbf24;
             border: 1px solid rgba(245, 158, 11, 0.3);
         }
+        .history-section {
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+        }
+        .history-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            background: var(--primary-glow);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: left;
+        }
+        .history-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+        }
+        .history-question {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+            color: #f3f4f6;
+        }
+        .history-answer {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+        .history-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: rgba(156, 163, 175, 0.6);
+        }
+        .history-sources {
+            display: flex;
+            gap: 0.4rem;
+        }
+        .history-source-chip {
+            padding: 0.2rem 0.5rem;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -834,6 +904,12 @@ def ask_ui():
             <div class="result-title">Sources used</div>
             <div class="sources-row" id="sources-container"></div>
         </div>
+
+        <!-- History Section -->
+        <div class="history-section" id="history-section" style="display: none;">
+            <div class="history-title">Recent Q&A History</div>
+            <div id="history-list"></div>
+        </div>
     </div>
 
     <script>
@@ -845,6 +921,69 @@ def ask_ui():
         const resultAnswer = document.getElementById('result-answer');
         const sourcesContainer = document.getElementById('sources-container');
         const statusBadge = document.getElementById('status-badge');
+        const historySection = document.getElementById('history-section');
+        const historyList = document.getElementById('history-list');
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/rag/history?limit=5');
+                if (!response.ok) return;
+                const logs = await response.json();
+                
+                if (logs.length > 0) {
+                    historySection.style.display = 'block';
+                    historyList.innerHTML = '';
+                    
+                    logs.forEach(log => {
+                        const item = document.createElement('div');
+                        item.className = 'history-item';
+                        
+                        const qDiv = document.createElement('div');
+                        qDiv.className = 'history-question';
+                        qDiv.innerText = log.question;
+                        item.appendChild(qDiv);
+                        
+                        const aDiv = document.createElement('div');
+                        aDiv.className = 'history-answer';
+                        aDiv.innerText = log.answer;
+                        item.appendChild(aDiv);
+                        
+                        const metaDiv = document.createElement('div');
+                        metaDiv.className = 'history-meta';
+                        
+                        const sourcesDiv = document.createElement('div');
+                        sourcesDiv.className = 'history-sources';
+                        if (log.sources && log.sources.length > 0) {
+                            log.sources.forEach(src => {
+                                const chip = document.createElement('span');
+                                chip.className = 'history-source-chip';
+                                chip.innerText = src;
+                                sourcesDiv.appendChild(chip);
+                            });
+                        } else {
+                            const noneSpan = document.createElement('span');
+                            noneSpan.style.color = 'rgba(156, 163, 175, 0.4)';
+                            noneSpan.innerText = 'No sources';
+                            sourcesDiv.appendChild(noneSpan);
+                        }
+                        metaDiv.appendChild(sourcesDiv);
+                        
+                        const timeSpan = document.createElement('span');
+                        const date = new Date(log.created_at + 'Z');
+                        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        timeSpan.innerText = `${timeStr} (${Math.round(log.latency_ms)}ms)`;
+                        metaDiv.appendChild(timeSpan);
+                        
+                        item.appendChild(metaDiv);
+                        historyList.appendChild(item);
+                    });
+                } else {
+                    historySection.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Failed to load history', err);
+            }
+        }
 
         askBtn.addEventListener('click', async () => {
             const question = questionInput.value.trim();
@@ -902,8 +1041,12 @@ def ask_ui():
             } finally {
                 loader.style.display = 'none';
                 askBtn.disabled = false;
+                loadHistory();
             }
         });
+
+        // Initialize history load
+        loadHistory();
     </script>
 </body>
 </html>"""
