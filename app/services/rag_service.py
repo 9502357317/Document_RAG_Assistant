@@ -270,15 +270,19 @@ class RAGService:
             context_str = "\n\n".join(context_parts)
             
             system_prompt = (
-                "You are a precise document question-answering assistant. You must answer the user's question using ONLY the provided context.\n"
+                "You are a precise document QA assistant. You must answer the user's question using ONLY the provided context.\n"
                 "Follow these strict rules:\n"
-                "1. Locate the document containing the answer and use only the facts from that specific document.\n"
-                "2. Do not mix information (like numbers, names, or dates) from different documents.\n"
-                "3. Cite the exact document filename (e.g. 'Source: filename.txt') in your answer.\n"
-                "4. Be explicit: State the exact names of companies, people, places, dates, or details from the text rather than using generic terms (e.g., say 'Riverside Office Supplies' instead of 'the company'). Do not assume anything not explicitly mentioned.\n"
-                "5. If the context does not contain the answer, reply EXACTLY with 'I don't know.' and nothing else."
+                "1. If the context does not explicitly contain the answer, reply EXACTLY with 'I don't know.' and nothing else. Do not speculate or extrapolate.\n"
+                "2. Cite the exact document filename (e.g. 'Source: filename.txt') in your answer.\n"
+                "3. Be explicit: State the exact names of companies or people from the text rather than using generic terms (e.g. say 'Riverside Office Supplies' instead of 'the company')."
             )
-            user_content = f"Context:\n{context_str}\n\nQuestion: {question}"
+            user_content = (
+                f"Context:\n{context_str}\n\n"
+                f"Question: {question}\n\n"
+                f"Answer the question using ONLY the facts explicitly mentioned in the context above. "
+                f"If the context does not explicitly mention the answer to this question (for example, if the CEO or revenue is not stated), "
+                f"you MUST reply EXACTLY with 'I don't know.' and nothing else."
+            )
             
             messages = [
                 {"role": "system", "content": system_prompt},
