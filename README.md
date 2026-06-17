@@ -23,6 +23,17 @@ flowchart TD
 
 ---
 
+## ✨ Advanced RAG Features
+
+This RAG system implements state-of-the-art retrieval and extraction features:
+1. **Reranker (CrossEncoder)**: Pairs queries with bi-encoder candidates (top 20) and ranks them using `cross-encoder/ms-marco-MiniLM-L6-v2` down to the top-4 chunks, dramatically improving MRR.
+2. **Refusal Threshold Guardrail**: Chunks with a CrossEncoder score below `-6.0` are filtered out. If no high-quality chunks exist, the pipeline automatically returns a refusal.
+3. **Factual Prompt Constraints**: System prompts and explicit user reminders enforce strict alignment to the context, eliminating model hallucinations (such as assigning sign-off names like "The Accounts Team" to role queries like "CEO").
+4. **Query Rewriting (Expansion)**: Leverages the local LLM to optimize short or ambiguous user queries before vector index search, boosting retrieval recall.
+5. **Scorecard Evaluation**: Includes validation scripts to measure **Recall@4**, **MRR (Mean Reciprocal Rank)**, **Answer Accuracy (Keyphrase match)**, and **Refusal Rate** on unanswerable questions.
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Create and Activate Virtual Environment
@@ -48,7 +59,13 @@ To reset the database/vector store, ingest all files in the corpus, print regist
 python demo.py
 ```
 
-### 5. Run the Server Locally
+### 5. Run Scorecard Evaluation
+To evaluate RAG metrics (recall, MRR, answer accuracy, refusal rate) on the evaluation set:
+```bash
+python evaluate.py
+```
+
+### 6. Run the Server Locally
 To start the FastAPI web server locally:
 ```bash
 uvicorn main:app --host 127.0.0.1 --port 8000 --reload
