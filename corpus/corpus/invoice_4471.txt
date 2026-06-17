@@ -1,0 +1,26 @@
+INVOICE 4471
+Issued: 2026-03-05    Due: 2026-04-04 (net 30)
+Bill to: Riverside Office Supplies, Accounts Team
+
+Remit-to / service address (CONTAINS A KNOWN TYPO):
+    3900 MIAN ST, RIVERSIDE, CA 92522
+The street name above is mis-transcribed ("MIAN" should read "MAIN") and must be
+corrected in the registry before this invoice is paid.
+
+------------------------------------------------------------
+ Item                          Qty    Unit price    Line total
+ ----------------------------  ----   ----------    ----------
+ Copy paper, case (10 reams)     6        42.00        252.00
+ Toner cartridge, mono           3       129.00        387.00
+ Stationery, monthly supply      1       245.00        245.00
+ Whiteboard markers, box        12        12.50        150.00
+ ----------------------------  ----   ----------    ----------
+ Subtotal                                             1,034.00
+ Tax (8.5%)                                              87.89
+ Rush handling                                          190.61
+ ----------------------------  ----   ----------    ----------
+ TOTAL AMOUNT DUE                                     1,312.50
+------------------------------------------------------------
+
+Payment terms: net 30 days from the issue date. A 1.5% monthly late fee applies
+to balances unpaid after the due date. Reference invoice number 4471 on payment.

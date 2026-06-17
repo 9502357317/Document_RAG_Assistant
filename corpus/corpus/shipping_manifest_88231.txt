@@ -1,0 +1,35 @@
+SHIPPING MANIFEST — SHIPMENT 88231
+Carrier: Regional Freight Lines    Service level: Standard ground (4 business days)
+Manifest generated: 2026-02-18 06:42 PST    Dispatch desk: Bay 3
+
+================================================================
+SECTION A — ROUTING
+================================================================
+Origin warehouse (SHIP FROM):
+    200 N Spring St
+    Los Angeles, CA 90012
+    Dock hours: 06:00-14:00, ask for the outbound lead
+
+Destination office (SHIP TO):
+    Goodlett Distribution Center
+    4400 Will Rogers Pkwy
+    Oklahoma City, OK 73108
+    Receiving contact: dock supervisor, gate 2
+
+Billing party (do NOT ship here): Accounts Team, 3900 Main Street, Riverside, CA
+92522. This address is for the invoice only and is not a delivery point.
+
+================================================================
+SECTION B — CONTENTS
+================================================================
+  Line  Description                 Qty   Weight(lb)
+  ----  --------------------------  ----  ----------
+  1     Office desks, flat-packed     8        1,920
+  2     Task chairs                   24         600
+  3     Filing cabinets, 4-drawer     4         480
+  ----  --------------------------  ----  ----------
+        TOTAL                        36        3,000
+
+Both the origin and destination addresses MUST be confirmed by the dispatch desk
+before the truck is released. Any address mismatch voids the carrier's transit
+guarantee.

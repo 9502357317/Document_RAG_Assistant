@@ -1,0 +1,34 @@
+question,answer_file,expected_keyphrase
+What forwarding address does the Office of Records notice give for future mail?,letter_dc.txt,1600 Pennsylvania Ave
+Which company consolidated its billing and support at the Main Street headquarters?,letter_riverside.txt,Riverside Office Supplies
+What is the total amount due on invoice 4471?,invoice_4471.txt,"1,312.50"
+What is the origin warehouse address on shipping manifest 88231?,shipping_manifest_88231.txt,200 N Spring St
+What is the destination office for shipment 88231?,shipping_manifest_88231.txt,Goodlett
+Who is responsible for writing integration tests after the Q3 planning meeting?,q3_planning_notes.md,integration tests
+What email address should I use to reach the support team?,company_faq.md,support@datafactz-internal
+How many days do I have to return a standard item for a full refund?,returns_policy.md,30 days
+Which endpoint exports the address registry as a CSV?,howto_export_registry.md,/export
+How long is a soft-deleted address record kept before it is hard-purged?,data_retention_policy.md,90 days
+What was the root cause of the February 7 search outage?,incident_2026_0207_postmortem.md,TLS certificate
+Which repository role should a new engineer choose to be able to push branches?,onboarding_runbook.md,contributor
+What is the USPS standard abbreviation for Boulevard in the normalization spec?,address_normalization_spec.md,BLVD
+What does the address 3900 Main Street normalize to in canonical form?,address_normalization_spec.md,3900 MAIN ST
+Which approved vendor handles printing and binding jobs?,vendor_directory.md,Cascade Print
+What member address is recorded on the test membership application form?,membership_application.txt,Nowhere Blvd
+What is the total amount due on invoice 5503?,invoice_5503.txt,"1,650.00"
+What is the total amount due on invoice 6120?,invoice_6120.txt,"1,294.41"
+What address should freight deliveries for Goodlett be sent to?,letter_oklahoma.txt,4400 Will Rogers Pkwy
+What is the origin warehouse on shipping manifest 91045?,shipping_manifest_91045.txt,88 Foundry Way
+What is the destination on shipping manifest 91045?,shipping_manifest_91045.txt,Cambridge
+What side entrance should deliveries use at Cascade Print during the refurbishment?,letter_tacoma.txt,Kiln Lane
+How long after order placement can a custom order be cancelled without penalty?,returns_policy_custom.md,48 hours
+Within how many days must a defective custom item be reported?,returns_policy_custom.md,7 days
+How many soft-deleted address records were hard-purged in Q1 2026?,data_retention_audit.md,1847
+What was the root cause of the March 18 export slowdown?,incident_2026_0318_postmortem.md,missing index
+What port must be free to start the local Postgres container during onboarding?,onboarding_checklist.md,5432
+What is the USPS abbreviation for Parkway according to the normalization FAQ?,address_normalization_faq.md,PKWY
+Why does the address 3900 MIAN ST not match 3900 MAIN ST in the registry?,address_normalization_faq.md,spelling errors
+What was the company's total annual revenue in 2025?,,
+Who is the chief executive officer of Riverside Office Supplies?,,
+What time does the New York office close on public holidays?,,
+What is the Wi-Fi password for the Tokyo office?,,

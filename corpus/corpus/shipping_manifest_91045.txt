@@ -1,0 +1,35 @@
+SHIPPING MANIFEST — SHIPMENT 91045
+Carrier: Regional Freight Lines    Service level: Express ground (2 business days)
+Manifest generated: 2026-03-10 08:15 PST    Dispatch desk: Bay 1
+
+================================================================
+SECTION A — ROUTING
+================================================================
+Origin warehouse (SHIP FROM):
+    88 Foundry Way
+    Tacoma, WA 98402
+    Dock hours: 07:00-15:00, ask for the print room lead
+
+Destination office (SHIP TO):
+    DataFactz HQ — Mailroom
+    500 Technology Square
+    Cambridge, MA 02139
+    Receiving contact: facilities desk, lobby entrance
+
+Billing party (do NOT ship here): Finance, 3900 Main Street, Riverside, CA 92522.
+This address is for invoicing only and is not a delivery point.
+
+================================================================
+SECTION B — CONTENTS
+================================================================
+  Line  Description                 Qty   Weight(lb)
+  ----  --------------------------  ----  ----------
+  1     Printed brochures, boxed     50         125
+  2     Bound report sets             20          60
+  3     Display banners, rolled       10          30
+  ----  --------------------------  ----  ----------
+        TOTAL                        80         215
+
+Fragile items in lines 1 and 2: do not stack more than two boxes high.
+Both origin and destination addresses must be confirmed by the dispatch desk
+before the truck departs. Any discrepancy voids the express delivery guarantee.

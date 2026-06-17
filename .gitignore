@@ -1,0 +1,24 @@
+# Virtual Environment
+venv/
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Databases & Vector Stores
+registry.db
+test_registry.db
+chroma_db/
+
+# Logs
+*.log
+app.log
+
+# IDE Files
+.vscode/
+.idea/
+.gemini/

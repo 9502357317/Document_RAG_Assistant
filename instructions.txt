@@ -1,0 +1,214 @@
+Week 3: LLMs and RAG (Document Question-Answering)
+Task 1 — Set up a free local LLM and wrap it
+Install transformers and torch.
+Load a small instruct model through the pipeline helper. Use Qwen/Qwen2.5-0.5B-Instruct (Apache-2.0, ungated, about 1 GB, fine on a CPU-only laptop). Avoid Llama and Gemma — they are gated and will break grading.
+Hide the model behind your own llm.py module exposing one function: generate(messages, max_tokens) returning text.
+Load the pipeline once at module level (not on every call) so it is cached.
+Catch load and runtime errors and raise one clean LLMUnavailable exception — the rest of the app must never see a raw stack trace.
+Done when: python llm.py "Reply with the word PONG" prints PONG (or close), the model loads only once, and forcing a failure (e.g. a bad model name) produces your clean LLMUnavailable exception, not a stack trace.
+Resources:
+transformers pipelines — https://huggingface.co/docs/transformers/main_classes/pipelines
+Qwen2.5-0.5B-Instruct model card — https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct
+Task 2 — LLM address extraction with validation and fallback
+Define a pydantic v2 model for an address (street, city, state, zip) and a model for a list of them.
+Prompt the LLM to extract every postal address from a document and return strict JSON. Parse the reply with Model.model_validate_json(...) (pydantic v2 — the v1 parse_raw is gone).
+If validation fails, retry once with the error message appended to the prompt; if it fails again, fall back to your Phase 1 deterministic (regex) extractor. Log which path every document took.
+Run both extractors over the address documents in sample_pdfs/ (your Phase-1 extraction set) and compare the results against rag_questions_sample_key.csv.
+Two test invoices exercise both paths: invoice_5210_clean.pdf has a clean, labelled address your Phase-1 PDF/regex extractor reads directly, while invoice_5211_messy.txt buries the same address in free-form prose, so only the LLM pulls it out. Both must run, and both normalize to the same registry record.
+The LLM extractor is opt-in: the deterministic (regex) pipeline runs automatically on upload, and you invoke the LLM path explicitly — a flag, or the /documents/{id}/extract_llm endpoint. Nothing auto-switches to the LLM. The only automatic step is the reverse: once the LLM path is running, output that fails validation falls back to the regex extractor.
+Done when: POST /documents/{id}/extract_llm returns validated JSON addresses, and deliberately garbled LLM output triggers a retry and then the deterministic fallback.
+Resources:
+pydantic JSON parsing — https://docs.pydantic.dev/latest/concepts/json/
+Prompt engineering guide (free) — https://www.promptingguide.ai/
+Task 3 — Read up on RAG, chunking, recall, and test mocking (reading task)
+RAG (retrieval-augmented generation): what it is and why we retrieve relevant documents and hand them to the model, instead of trusting the model's memory.
+Chunking: why long documents are split into small pieces before embedding, and how chunk size and overlap trade off (too big = noisy matches, too small = lost context).
+Recall (and recall@k): what recall measures in retrieval — the fraction of the relevant items you actually retrieved — and why it is the headline “did we even find the right document?” metric for RAG.
+Test mocking / monkeypatching: replacing a real function (like the LLM's generate) with a fake one during a test, so the test runs fast and offline. You use this in Task 11.
+Done when: You understand RAG, chunking, recall@k, and what it means to monkeypatch a function in a test — enough to use them in the tasks below.
+Resources:
+RAG concept overview — https://www.promptingguide.ai/techniques/rag
+Chunking strategies (background) — https://www.pinecone.io/learn/chunking-strategies/
+Recall & RAG evaluation metrics (background) — https://www.evidentlyai.com/llm-guide/rag-evaluation
+pytest monkeypatch (mocking in tests) — https://docs.pytest.org/en/stable/how-to/monkeypatch.html
+Task 4 — Chunk and embed documents into a vector store
+Split each document into chunks of roughly 400 characters with about 50 characters of overlap.
+Embed each chunk with your Week 2 model all-MiniLM-L6-v2 (384-dimensional vectors; the dimension must match between ingestion and query).
+Store the chunks in a local vector index. Two free options:
+ChromaDB — an in-process vector database that persists to a local folder and gives you metadata, upsert, and persistence out of the box. The simpler default.
+FAISS (faiss-cpu) — an in-memory similarity-search index; faster and lighter, but you manage persistence and the id→text/metadata mapping yourself.
+Add chunks with stable ids of the form filename#index and the filename in metadata. Use upsert so re-running ingestion does not duplicate chunks.
+Wire ingestion into the upload pipeline so new documents are embedded automatically.
+Index size, for reference: this corpus produces roughly 50–80 chunks; each embedding is 384 floats ≈ 1.5 KB, so the whole index is well under 1 MB (even 10,000 chunks ≈ 15 MB).
+FAISS equivalent: normalize your vectors and use faiss.IndexFlatIP (inner product on normalized vectors = cosine), and keep a parallel list mapping each row to its (chunk text, filename).
+Done when: A /rag/reindex endpoint reports how many chunks exist, uploading a new document adds its chunks automatically, and re-running reindex does not increase the count.
+Resources:
+ChromaDB getting started — https://docs.trychroma.com/docs/overview/getting-started
+FAISS getting started (wiki) — https://github.com/facebookresearch/faiss/wiki/Getting-started
+sentence-transformers quickstart — https://sbert.net/docs/quickstart.html
+Task 4: Evaluation question set ( find the questions in the csv)
+Task 5 — Retrieval: find the right chunks
+Prove retrieval works before adding the LLM — bad retrieval is the number-one reason RAG systems fail.
+Add POST /rag/search that takes a question, embeds it, and returns the top-k chunks (start with k = 4) with their filenames and a 0-to-1 similarity score (convert it from the distance Chroma returns).
+Score retrieval with recall@4: for each question, check whether the correct source file appears among the top 4 retrieved chunks. Recall@4 is the fraction of questions where it does. (You read about recall in Task 3.)
+Compute recall@4 with a small script. It reads an answer-key CSV with columns question, answer_file, expected_keyphrase (a sample is provided at rag_questions_sample_key.csv); use the answer_file column — the correct source file for each question — to check whether it lands in your top-4 hits. Rows with a blank answer_file are unanswerable and are skipped.
+Done when: A script prints recall@4 over the question set, and at least 8 of the answerable questions retrieve the right file in the top 4.
+Resources:
+ChromaDB query and get — https://docs.trychroma.com/docs/querying-collections/query-and-get
+Task 6 — Add a reranker (cross-encoder) and measure MRR
+Your embedding model is a bi-encoder: it turns the question and each chunk into vectors separately, then compares the vectors — fast and scalable, but the question and chunk never actually “read” each other.
+A cross-encoder (a reranker) feeds the question and one chunk through a single model together, so they attend to each other, producing a much sharper relevance score — at the cost of running the model once per pair.
+Standard pattern: retrieve a wide top-N cheaply with the bi-encoder, then rerank to a small top-k with the cross-encoder. Use cross-encoder/ms-marco-MiniLM-L6-v2: retrieve top-N = 20, rerank to top-k = 4.
+Add a second metric, MRR (Mean Reciprocal Rank): for each question, scan your ranked results for the first chunk whose source file is the correct one (rag_questions_sample_key.csv), note its position (1, 2, 3…), and take 1 / position. Average that over all questions. Report recall@4 and MRR both with and without reranking.
+Done when: Your script prints recall@4 and MRR with and without the reranker, and reranking does not lower MRR — it should usually raise it.
+Resources:
+CrossEncoder usage — https://sbert.net/docs/cross_encoder/usage/usage.html
+Task 7 — Full RAG: answer questions with sources
+Add POST /ask: embed the question, retrieve the top-N chunks, rerank to the top-k, and build a prompt containing those chunks (each labelled with its filename), the question, and firm instructions.
+Instructions to the model: answer ONLY from the provided context, cite the filenames you used, and reply exactly “I don't know” when the context does not contain the answer. Send it through llm.py.
+Return a pydantic-validated JSON object: answer (string), sources (list of filenames), and context_found (boolean). Log every call — question, retrieved files, latency — to a rag_log table.
+What “add a simple ask box to your frontend” . Just a minimal UI so you (and a reviewer) can try questions without curl: a single text input plus an “Ask” button that POSTs the question to /ask and renders the returned answer with its source filenames underneath. It does not need to be styled.
+If your app has no frontend yet, the simplest versions are an HTML form served from a route, a tiny Streamlit or Gradio page, or even FastAPI's built-in /docs “Try it out” panel. The point is a human-usable way to ask a question and see the answer plus its sources.
+Done when: Asking “What is the forwarding address in the DC letter?” returns the right address citing letter_dc.txt, the response validates against your pydantic model, and the call is visible in rag_log.
+Resources:
+pydantic models — https://docs.pydantic.dev/latest/concepts/models/
+Task 8 — Hallucination guardrail: measure refusal rate
+Take the unanswerable, out-of-corpus questions and confirm /ask declines instead of inventing an answer.
+Measure the refusal rate: the fraction of unanswerable questions the system correctly declines.
+Unanswerable questions to test with (none are in the corpus — the correct behavior is to refuse):
+What was the company's total annual revenue in 2025?
+Who is the chief executive officer of Riverside Office Supplies?
+What time does the New York office close on public holidays?
+What is the Wi-Fi password for the Tokyo office?
+How many employees does the company have?
+What is the home address of the engineer named Rivera?
+Which airline should we book for the team offsite?
+What is the API key for the production embedding service?
+The first four are part of the evaluation question set above; add the rest yourself.
+Spot-check faithfulness on the answerable questions: is every claim in the answer supported by the retrieved chunks, or did the model add something the context never said? The corpus is full of confusable near duplicates (three Riverside addresses, a manifest with two addresses, a deliberate “MIAN ST” typo) precisely to tempt the model.
+Done when: A script prints the refusal rate on the unanswerable questions, and at least 80% are correctly declined.
+Resources:
+RAG evaluation (background) — https://www.evidentlyai.com/llm-guide/rag-evaluation
+Task 9 — Query rewriting: help retrieval on messy questions
+Short or vaguely worded questions often retrieve the wrong chunks. Query rewriting uses the LLM to rephrase or expand the user's question into a cleaner search query before you embed it.
+Sample vague questions to test rewriting with: “dc letter address?”, “riverside place”, “how many days to return”, “who does the tests”, “export csv how”, “boulevard short form”. Each is a terse version of a real corpus question; rewriting should expand it into something retrieval handles better.
+Add an optional rewrite step in front of /rag/search, behind a flag, and measure recall@4 with and without it on the question set.
+Keep whichever version scores better — the flag selects it. Rewriting does not always help on a small, clean corpus, and that is a fine result.
+Done when: recall@4 is reported with and without query rewriting, and you keep the better one.
+Resources:
+RAG techniques cookbook (worked examples) — https://github.com/NirDiamant/RAG_Techniques
+Task 10 — Evaluation harness: one scorecard
+Pull every metric into one place. Write evaluate.py that reads an answer-key CSV (columns: question, answer_file, expected_keyphrase; sample at rag_questions_sample_key.csv) and prints a single scorecard: recall@k, MRR, answer accuracy, and refusal rate.
+Answer accuracy is the fraction of questions whose generated answer contains the expected_keyphrase from the answer key. Where retrieval succeeded but the answer was still wrong, print a one-line diagnosis.
+How to compute each metric (concept hints, not code):
+Loop once over the answer key and split rows into answerable (have a source file) and unanswerable (blank).
+recall@k — for each answerable question, run retrieval, collect the filenames of the top-k chunks, and check membership: is answer_file in that set? recall@k = (number of “yes”) ÷ (number of answerable questions).
+MRR — for each answerable question, find the 1-based position of the FIRST top-k chunk whose filename equals answer_file; its contribution is 1 / position (or 0 if the file never appears). MRR is the mean of those reciprocals.
+Answer accuracy — run the full /ask pipeline, lowercase both sides, and test whether expected_keyphrase is a substring of the generated answer. accuracy = (matches) ÷ (answerable questions). Crude, but the keyphrases were chosen short and unambiguous so it is good enough.
+Refusal rate — run /ask on the unanswerable questions and check whether the answer is (or contains) “I don't know.” refusal rate = (correct refusals) ÷ (unanswerable questions).
+Diagnosis line — a question is a “retrieval hit but answer miss” when answer_file was in the top-k yet the keyphrase is absent. Print one line; usual causes are the model ignoring the context, the answer phrasing the fact differently, or the right chunk being out-ranked by a distractor.
+Have evaluate.py print, alongside the scorecard, which metric is weakest (its lowest score), so the report is self-explanatory — the numbers are the deliverable, not a write-up.
+Done when: One command prints the full scorecard (recall@k, MRR, answer accuracy, refusal rate) and flags the weakest metric.
+Resources:
+RAG evaluation guide (background) — https://www.evidentlyai.com/llm-guide/rag-evaluation
+Task 11 — Test and ship
+Use pytest with FastAPI's TestClient and a fresh temporary database per test.
+Cover the deterministic core: a duplicate file returns 409, address variants dedupe to one entry, a failed extraction stores a reason, and a merge re-points document links.
+For LLM-dependent code, mock (monkeypatch) your generate function to return canned output and set a fake HF token, so the suite passes with no model download and no network. (You read about monkeypatching in Task 3.)
+The critical detail: patch the name where it is USED — for example app.rag.generate — not where it is defined.
+Finish the repo: a README with an architecture sketch (upload → extract → normalize → dedup → embed → retrieve → rerank → ask), a pinned requirements.txt, and a demo.py that resets the database, ingests the corpus, prints /stats, and runs three RAG questions.
+What you hand in: a runnable codebase plus clear instructions to run it (the README and demo.py). The code and its output are the deliverable — no written notes or write-ups are required.
+Done when: pytest passes with no network and no model loaded, and a teammate can clone the repo, follow the README, and run demo.py without asking you anything.
+Resources:
+pytest monkeypatch — https://docs.pytest.org/en/stable/how-to/monkeypatch.html
+FastAPI testing — https://fastapi.tiangolo.com/tutorial/testing/
+Bonus tasks (optional, attempt after the main list works)
+Compare two free models. Run the same extraction and RAG questions through a second free local model — e.g. Qwen/Qwen2.5-1.5B-Instruct against the 0.5B from Task 1 — and compare answer accuracy and latency in a short table.
+Task 5 - Retrieve the right chunk (recall@4)
+You have documents already chunked and stored in a vector store (Task 4). Task 5 asks: when someone asks a question, does the right document appear in the top 4 results?
+Embed the question with the same model used during ingestion. Query the vector store for the 4 closest chunks. Check if the correct file is among them. Do that for all answerable questions and divide hits by the total - that is recall@4.
+The vector store returns distance (lower = more similar). Convert to a 0-1 similarity score: score = 1.0 - distance. recall@4 only checks if the correct file is anywhere in the top 4 - position does not matter.
+Your functions should look like:
+def search(question: str, k: int = 4) -> list[dict]:
+    # embed the question, query the vector store, return top-k results
+    # each result: {"filename": ..., "score": ..., "text": ...}
+    ...
+def recall_at_k(questions: list[dict], k: int = 4) -> float:
+    # for each question, check if answer_file is in the top-k filenames
+    # return hits / total
+    ...
+Sample output from search() for one question:
+[
+  {"filename": "letter_dc.txt",      "score": 0.9121, "text": "all future correspondence is to be redirected..."},
+  {"filename": "letter_riverside.txt","score": 0.6043, "text": "consolidated its billing and returns..."},
+  {"filename": "letter_oklahoma.txt", "score": 0.5217, "text": "Goodlett Distribution Center has updated..."},
+  {"filename": "letter_tacoma.txt",   "score": 0.4882, "text": "temporary change to our receiving hours..."}
+]
+Sample recall@4 output:
+recall@4 = 0.75  (30/40 answerable)
+Task 6 - Rerank and measure MRR
+recall@4 only checks if the right file is somewhere in the top 4. MRR (Mean Reciprocal Rank) measures how close to rank 1 it lands. Rank 1 = 1.0, rank 2 = 0.5, rank 3 = 0.33, not found = 0. MRR is the average across all questions.
+You compute MRR twice: once using only the bi-encoder top-k results (no rerank), and once after reranking. Comparing the two shows how much the cross-encoder improves result ordering.
+The bi-encoder is fast but approximate. A cross-encoder scores each (question, chunk) pair together and is much more accurate but too slow for the full corpus. Pattern: fetch top 20 with the bi-encoder, re-score those 20 with the cross-encoder, keep the top 4.
+Your functions should look like:
+def mrr_no_rerank(questions: list[dict], k: int = 4) -> float:
+    # for each question: search top-k with bi-encoder only
+    # find position of correct file in those k results
+    # reciprocal rank = 1 / position (0 if not found)
+    # return average reciprocal rank
+    ...
+def retrieve_wide(question: str, n: int = 20) -> list[dict]:
+    # same as search() but fetch n=20 candidates
+    ...
+def rerank(question: str, candidates: list[dict], k: int = 4) -> list[dict]:
+    # score each (question, chunk) pair with the cross-encoder
+    # sort by cross-encoder score, return top k
+    ...
+def mrr_reranked(questions: list[dict], k: int = 4) -> float:
+    # for each question: wide fetch -> rerank -> find position of correct file
+    # reciprocal rank = 1 / position (0 if not found)
+    # return average reciprocal rank
+    ...
+Sample output from rerank() - notice the order has changed vs the bi-encoder:
+[
+  {"filename": "letter_dc.txt",      "score": 0.9121, "rerank_score":  4.83, "text": "..."},
+  {"filename": "letter_tacoma.txt",   "score": 0.4882, "rerank_score": -1.12, "text": "..."},
+  {"filename": "letter_oklahoma.txt",  "score": 0.5217, "rerank_score": -2.44, "text": "..."},
+  {"filename": "letter_riverside.txt", "score": 0.6043, "rerank_score": -3.91, "text": "..."}
+]
+Note: bi-encoder ranked letter_riverside.txt #2, but the cross-encoder pushed it to #4 because it is less relevant to this specific question. This is the value reranking adds.
+Sample final output comparing both MRR values:
+questions: 20
+recall@4    no-rerank: 0.72    rerank: 0.85
+MRR         no-rerank: 0.858   rerank: 0.937
+Task 10 - Full scorecard
+Task 10 runs against the full question set and produces four numbers: recall@k, MRR, answer accuracy, and refusal rate. It also flags the weakest metric and diagnoses cases where retrieval succeeded but the LLM answer still missed the expected keyphrase.
+The four metrics:
+recall@k - fraction of answerable questions where the correct file is in the top-k retrieved chunks (from Task 5).
+MRR - average reciprocal rank of the correct file across answerable questions (from Task 6).
+answer_accuracy - fraction of answerable questions where the LLM answer contains the expected keyphrase. This requires the full RAG pipeline (retrieval + LLM) to be running.
+refusal_rate - fraction of unanswerable questions (blank answer_file) where the LLM correctly refuses to answer instead of guessing.
+Your function should look like:
+def run(key_path) -> dict:
+    # split rows into answerable and unanswerable
+    # for each answerable question:
+    #   - run reranked retrieval, compute recall and MRR
+    #   - run the full ask() pipeline, check if keyphrase is in the answer
+    #   - if retrieval hit but answer missed, log a diagnosis
+    # for each unanswerable question:
+    #   - run ask(), check if the answer starts with a refusal
+    # return scorecard dict + weakest metric + diagnoses list
+    ...
+Sample output:
+========================================
+RAG SCORECARD
+========================================
+  recall@4           0.875
+  MRR                0.921
+  answer_accuracy    0.812
+  refusal_rate       0.750
+  answerable: 20   unanswerable: 4
+  weakest metric: answer_accuracy (0.812)
+Retrieval-hit / answer-miss diagnoses:
+  - 'What port must be free to start the local Postgr...': right file retrieved but answer missed '5432'
+The diagnoses are the most useful part - they tell you exactly which questions the retrieval got right but the LLM still failed on. A high recall but low accuracy diagnosis means the LLM is reading the right chunk but not extracting the answer correctly, which points to a prompting problem rather than a retrieval problem.

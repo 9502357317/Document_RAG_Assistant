@@ -1,0 +1,12 @@
+MEMBERSHIP APPLICATION FORM (TEST RECORD)
+
+Applicant name: J. Park
+Member address: 123 Nowhere Blvd, Springfield, ZZ 00000
+Phone: 555-0146
+Membership tier requested: Standard
+
+Declaration: This form records the member's mailing address exactly as written by
+the applicant. The address above does NOT correspond to a deliverable USPS
+location (state "ZZ" and ZIP "00000" are both invalid) and exists here only as a
+test record used to verify that the extractor flags undeliverable addresses
+rather than silently accepting them.

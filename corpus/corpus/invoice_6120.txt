@@ -1,0 +1,26 @@
+INVOICE 6120
+Issued: 2026-05-01    Due: 2026-05-31 (net 30)
+Bill to: Cascade Print & Bind, Finance Department
+
+Remit-to / service address:
+    88 Foundry Way
+    Tacoma, WA 98402
+
+------------------------------------------------------------
+ Item                          Qty    Unit price    Line total
+ ----------------------------  ----   ----------    ----------
+ Colour printing, A4 (1000 sh)   5        95.00        475.00
+ Saddle-stitch binding, 50pp    30        12.00        360.00
+ Laminating pouches, box 100     8        18.50        148.00
+ Rush fee (48h turnaround)       1       210.00        210.00
+ ----------------------------  ----   ----------    ----------
+ Subtotal                                             1,193.00
+ Tax (8.5%)                                            101.41
+ ----------------------------  ----   ----------    ----------
+ TOTAL AMOUNT DUE                                     1,294.41
+------------------------------------------------------------
+
+Payment terms: net 30 days. Reference invoice number 6120 on all remittances.
+Cascade Print & Bind requires a signed proof approval before releasing bulk print
+jobs. If proof approval is outstanding, payment is still due on the original
+schedule regardless of delivery status.
