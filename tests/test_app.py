@@ -178,7 +178,7 @@ def mock_llm(monkeypatch):
         if "Extract EVERY postal address" in messages[0]["content"] or "Document Text:" in prompt_content:
             return json.dumps(canned_responses["address_extraction"])
 
-        if "provided document context" in messages[0]["content"]:
+        if "provided context" in messages[0]["content"]:
             if "Office of Records" in prompt_content:
                 return canned_responses["rag_answer_records"]
             return canned_responses["rag_answer_unknown"]
