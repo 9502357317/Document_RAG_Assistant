@@ -266,15 +266,17 @@ class RAGService:
         else:
             context_parts = []
             for cand in top_k:
-                context_parts.append(f"[Source: {cand['filename']}]\n{cand['text']}")
+                context_parts.append(f"=== DOCUMENT: {cand['filename']} ===\n{cand['text']}\n=== END OF DOCUMENT {cand['filename']} ===")
             context_str = "\n\n".join(context_parts)
             
             system_prompt = (
-                "You are a helpful assistant that answers questions using ONLY the provided document context.\n"
-                "- Answer the question truthfully and concisely based on the context.\n"
-                "- Cite the filenames (e.g. \"Source: filename.txt\") of any sources you use to support your answer.\n"
-                "- If the context does not contain the answer, reply EXACTLY with \"I don't know.\" and nothing else. "
-                "Do not attempt to guess or use any outside knowledge."
+                "You are a precise document question-answering assistant. You must answer the user's question using ONLY the provided context.\n"
+                "Follow these strict rules:\n"
+                "1. Locate the document containing the answer and use only the facts from that specific document.\n"
+                "2. Do not mix information (like numbers, names, or dates) from different documents.\n"
+                "3. Cite the exact document filename (e.g. 'Source: filename.txt') in your answer.\n"
+                "4. Do not assume or guess any roles, names, or titles unless they are explicitly stated in the text.\n"
+                "5. If the context does not contain the answer, reply EXACTLY with 'I don't know.' and nothing else."
             )
             user_content = f"Context:\n{context_str}\n\nQuestion: {question}"
             
