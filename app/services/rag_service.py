@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import json
 import logging
@@ -80,6 +81,10 @@ class RAGService:
         if not text:
             return chunks
         
+        # Do not split files under 2000 characters to prevent loss of context (e.g. invoice tables)
+        if len(text) <= 2000:
+            return [text]
+            
         step = chunk_size - overlap
         if step <= 0:
             step = chunk_size
@@ -99,6 +104,12 @@ class RAGService:
         if not chunks:
             logger.warning(f"No text to index for file: {filename}")
             return
+
+        # Delete any existing chunks for this file to avoid residual chunk fragments in DB
+        try:
+            collection.delete(where={"filename": filename})
+        except Exception as delete_err:
+            logger.warning(f"Could not delete existing chunks for {filename}: {delete_err}")
 
         ids = [f"{filename}#{i}" for i in range(len(chunks))]
         metadatas = [{"filename": filename} for _ in range(len(chunks))]
@@ -266,7 +277,8 @@ class RAGService:
         else:
             context_parts = []
             for cand in top_k:
-                context_parts.append(f"=== DOCUMENT: {cand['filename']} ===\n{cand['text']}\n=== END OF DOCUMENT {cand['filename']} ===")
+                collapsed = "\n".join([re.sub(r" +", " ", line) for line in cand["text"].splitlines()])
+                context_parts.append(f"=== DOCUMENT: {cand['filename']} ===\n{collapsed}\n=== END OF DOCUMENT {cand['filename']} ===")
             context_str = "\n\n".join(context_parts)
             
             system_prompt = (

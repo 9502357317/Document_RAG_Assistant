@@ -31,6 +31,9 @@ This RAG system implements state-of-the-art retrieval and extraction features:
 3. **Factual Prompt Constraints**: System prompts and explicit user reminders enforce strict alignment to the context, eliminating model hallucinations (such as assigning sign-off names like "The Accounts Team" to role queries like "CEO").
 4. **Query Rewriting (Expansion)**: Leverages the local LLM to optimize short or ambiguous user queries before vector index search, boosting retrieval recall.
 5. **Scorecard Evaluation**: Includes validation scripts to measure **Recall@4**, **MRR (Mean Reciprocal Rank)**, **Answer Accuracy (Keyphrase match)**, and **Refusal Rate** on unanswerable questions.
+6. **Layout & Context Optimization**:
+   - **Context Preservation**: Prevents splitting document files under 2,000 characters (including invoices and letters) to keep relevant data together.
+   - **Space-Collapsing Preprocessing**: Collapses multiple consecutive spaces line-by-line in retrieved text before prompt building to prevent the local LLM from misinterpreting tabular layouts.
 
 ---
 
