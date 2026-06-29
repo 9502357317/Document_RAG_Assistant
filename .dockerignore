@@ -1,0 +1,15 @@
+venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+app.log
+registry.db
+test_registry.db
+chroma_db/
+query_rewrite_cache.json
+.git/
+.gitignore
+.dockerignore
