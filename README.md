@@ -1,3 +1,13 @@
+---
+title: Rag Address Registry
+emoji: 🐳
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Address Registry & Document RAG Q&A System
 
 This project implements a secure, local, and fully-featured document Q&A (RAG) system integrated with a deterministic and LLM-assisted address extraction registry.
