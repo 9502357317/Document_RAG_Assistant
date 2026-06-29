@@ -10,6 +10,8 @@ pinned: false
 
 # Address Registry & Document RAG Q&A System
 
+🚀 **Live Demo on Hugging Face Spaces**: [rag-address-registry](https://huggingface.co/spaces/Suriya1013/rag-address-registry)
+
 This project implements a secure, local, and fully-featured document Q&A (RAG) system integrated with a deterministic and LLM-assisted address extraction registry.
 
 ---
